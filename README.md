@@ -6,7 +6,7 @@ Members: Kieran Chu, Oliver Stephenson, Spencer Barkman
 ## Duplicated Code 
 Duplicated Code is the same code structure showing up in more than one place. This can be seen through my Minecraft XP Clicker, which has two farms that you can buy: A Villager farm and a Spawner farm.
 
-### Before refactoring
+### Before Refactoring
 ```ts
 upgradeFarmVButton.addEventListener("click", () => {
   const farmV = farms[0];
@@ -38,7 +38,7 @@ upgradeFarmSButton.addEventListener("click", () => {
 ```
 In the upgrade farm button handlers above, we can see that both buttons actually do the same thing. It prevents the player from buying if they can not afford it, and when they can afford it, they pay the cost and adds one farm internally and externally (shown by adding a farm image). It also raises the prices of each respective farm by a percentage of its current cost. 
 
-### After refactoring 
+### After Refactoring 
 ```ts
 function buyFarm(farm: Farm, iconBox: HTMLDivElement) {
   if (xp < farm.cost) {
@@ -66,3 +66,159 @@ Here I used the Extract function and moved the shared steps into one buyFarm fun
 When there are more than 2 buttons handlers that require basically do the same thing, I should realize this and create a function that can be used for both buttons to prevent the smell from occurring in the first place. If there are a few values that vary from the two buttons, parameterize them and use them in the function. 
 
 ## Long Function
+
+Long Functions arise when a function or method becomes responsible for handling more tasks than it should, or just has too many lines. Instead of a clearly defined function that does one thing  specifically, it does many things, making it easier to get confused aobut what the code does exactly. This code smell arises naturally as programs are built from the bottom up. As more pieces of code begin to have direct points of interaction, more features get added to the preexisting functions before any possible edits or refactoring can reorganize the code and make it easier to comprehend, run, and debug. Thus, the existing functions early on in projects tend to be Long Functions. This becomes problematic when working with collaborators as long functions make it harder to maintain readability, write tests, debug, or add more functionality.
+
+To prevent the development of long functions, give each function a clear purpose, and properly name said function after that purpose. This helps communicate the overall goal and the path that code is taking, making the objective clearer for all with the code. Avoid unnecessary duplication of code, turn anything that needs to be repeated multiple times into a function itself.
+
+Refactor functions as you go to keep them updated and organized. Creating Extract Functions as you go, with that repeated code, or by doing something like seperating text display and numerical calculations into 2 different functions which can be tested seperately. Decomposing conditional statements into functions of their own functions and  replacing temps with queries helpes decrease temp variables and decreases the number of calculation statements one may have to make if, say, having to constantly calculate an inventory amount of an item or currency.
+
+Here is an excerpt of a long function in Unity project I wrote a few weeks ago (C#):
+
+### Before Refactoring
+```ts
+private void OnTriggerEnter(Collider other)
+{
+  if (other.gameObject.CompareTag("Coin"))
+  {
+    count++;
+
+    countText.text = "Count: " + count;
+
+    if (coinSound != null)
+    {
+      coinSound.Play();
+    }
+
+      Destroy(other.gameObject);
+
+    if (count >= 12)
+    {
+        winTextObject.SetActive(true);
+        Debug.Log("Player wins!");
+    }
+    else
+    {
+      winTextObject.SetActive(false);
+    }
+  }
+}
+```
+
+As you can see in this function OnTriggerEnter(), too many things are being handled in one place. This was a code snippit from an early build of a simple collection based Unity project. As more and more was added to this little game, extraction functions to manage each different thing became more and more vital, especially for testing. It identifies the coin, updates the score, refreshes the interface, plays a sound, destroys the coin, checks the win condition, and changes the win screen. To refactor it, making it easier to test and read, we can extract each of those tasts into their own function; one to check the collision itself, one to trigger all the events during the collection, one to increase the score, another to update the display for the score, one to play the sound effect, and one to handle the win conditions. 
+
+### After Refactoring
+```ts
+private void OnTriggerEnter(Collider other)
+{
+    if (other.gameObject.CompareTag("Coin"))
+    {
+        CollectCoin(other.gameObject);
+    }
+}
+
+private void CollectCoin(GameObject coin)
+{
+    IncreaseScore();
+    UpdateScoreDisplay();
+    PlayCoinSound();
+    Destroy(coin);
+    CheckWinCondition();
+}
+
+private void IncreaseScore()
+{
+  count++;
+}
+
+private void UpdateScoreDisplay()
+{
+    countText.text = "Count: " + count;
+}
+
+private void PlayCoinSound()
+{
+    if (coinSound != null)
+    {
+        coinSound.Play();
+    }
+}
+
+private void CheckWinCondition()
+{
+    if (count >= 12)
+    {
+        winTextObject.SetActive(true);
+    }
+    else
+    {
+        winTextObject.SetActive(false);
+    }
+}
+```
+
+Same things apply in other languages too; Here's a TypeScript example for a currency-upgrade tycoon type game:
+
+### Before Refactoring
+```ts
+function buyUpgrade(): void {
+    const baseCost = 20;
+    const multiplier = 1.5;
+    const cost = Math.floor(baseCost * Math.pow(multiplier, upgradeLevel));
+
+    if (playerMoney >= cost) {
+        playerMoney -= cost;
+        upgradeLevel++;
+
+        displayedMoney = "Money: $" + playerMoney;
+        document.getElementById("money")!.textContent = displayedMoney;
+
+        document.getElementById("upgrade-level")!.textContent =
+            "Upgrade Level: " + upgradeLevel;
+
+    } else {
+        document.getElementById("message")!.textContent =
+            "Not enough money!";
+    }
+}
+```
+Now, this function, while small, still calculates upgrade costs, checks if the player can afford the upgrade, updates the money and level, updates the interface, and displays success and failure messages. Here we can extract functions much like before, and we can decompose the conditional from if (playerMoney >= cost) to a whole new canAffordUpgrade() function, and take all the temp variables from the start and plug them into calculateUpgradeCost(), replacing temp with query. 
+
+# After Refactoring
+```ts
+function calculateUpgradeCost(): number {
+    const baseCost = 20;
+    const multiplier = 1.5;
+
+    return Math.floor(baseCost * Math.pow(multiplier, upgradeLevel));
+}
+
+function canAffordUpgrade(cost: number): boolean {
+    return playerMoney >= cost;
+}
+
+function purchaseUpgrade(cost: number): void {
+    playerMoney -= cost;
+    upgradeLevel++;
+}
+
+function updateUpgradeDisplay(): void {
+    document.getElementById("money")!.textContent =
+        "Money: $" + playerMoney;
+
+    document.getElementById("upgrade-level")!.textContent =
+        "Upgrade Level: " + upgradeLevel;
+}
+
+function buyUpgrade(): void {
+    const cost = calculateUpgradeCost();
+
+    if (canAffordUpgrade(cost)) {
+        purchaseUpgrade(cost);
+        updateUpgradeDisplay();
+    } else {
+        document.getElementById("message")!.textContent =
+            "Not enough money!";
+
+    }
+}
