@@ -2,6 +2,7 @@
 Members: Kieran Chu, Oliver Stephenson, Spencer Barkman
 
 ## What are code smells? 
+A code smell is an indication of how difficult code will be to read, maintain, and expand. Not all code smells mean there are errors in code and even a correct program might have a bad structure of its implementation. Examples of code smells include duplicated code and functions that are too long. Finding these code smells will help developers to understand where refactoring can improve the code without changing its functionality.
 
 ## Duplicated Code 
 Duplicated Code is the same code structure showing up in more than one place. This can be seen through my Minecraft XP Clicker, which has two farms that you can buy: A Villager farm and a Spawner farm.
